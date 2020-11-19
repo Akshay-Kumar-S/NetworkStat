@@ -35,9 +35,9 @@ class MainActivity : AppCompatActivity() {
                 val endTime = System.currentTimeMillis()
                 Log.d(TAG, "getUsage:startTime  " + getDate(startTime, "dd/MM/yyyy hh:mm:ss.SSS"))
                 Log.d(TAG, "getUsage:endTime  " + getDate(endTime, "dd/MM/yyyy hh:mm:ss.SSS"))
-                Log.e(TAG, "onCreate: device usage")
+                Log.e(TAG, "************ device usage ************")
                 getDeviceUsage(startTime, endTime)
-                Log.e(TAG, "onCreate: app usage")
+                Log.e(TAG, "************ app usage ************")
                 getAppUsage(startTime, endTime)
             }
         }
