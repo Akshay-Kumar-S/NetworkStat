@@ -42,7 +42,17 @@ object Util {
 
     fun getStartTime(): Long {
         val date = Calendar.getInstance()
-        date.set(Calendar.HOUR_OF_DAY, 15)
+        date.set(Calendar.HOUR_OF_DAY, 12)
+        date.set(Calendar.MINUTE, 0)
+        date.set(Calendar.SECOND, 0)
+        date.set(Calendar.MILLISECOND, 0)
+        return date.timeInMillis
+    }
+
+    fun getEndTime(): Long {
+        val date = Calendar.getInstance()
+        date.add(Calendar.DATE, 1)
+        date.set(Calendar.HOUR_OF_DAY, 13)
         date.set(Calendar.MINUTE, 30)
         date.set(Calendar.SECOND, 0)
         date.set(Calendar.MILLISECOND, 0)

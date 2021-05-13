@@ -29,12 +29,12 @@ class MainActivity : AppCompatActivity() {
                 startActivity(intent)
             } else {
                 val startTime = Util.getStartTime()
-                val endTime = System.currentTimeMillis()
+                val endTime = Util.getEndTime()
                 Log.d(
                     TAG,
-                    "getUsage:startTime  " + Util.getDate(startTime, "dd/MM/yyyy hh:mm:ss.SSS")
+                    "getUsage:startTime  " + Util.getDate(startTime, "dd/MM/yyyy HH:mm:ss.SSS")
                 )
-                Log.d(TAG, "getUsage:endTime  " + Util.getDate(endTime, "dd/MM/yyyy hh:mm:ss.SSS"))
+                Log.d(TAG, "getUsage:endTime  " + Util.getDate(endTime, "dd/MM/yyyy HH:mm:ss.SSS"))
 //                Log.e(TAG, "************ device usage ************")
 //                getDeviceUsage(startTime, endTime)
                 Log.e(TAG, "************ app usage ************")
@@ -46,8 +46,10 @@ class MainActivity : AppCompatActivity() {
     @RequiresApi(Build.VERSION_CODES.M)
     private fun getUsageAccessPermission(): Boolean {
         val appOps = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
-        val mode = appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS,
-                Process.myUid(), packageName)
+        val mode = appOps.checkOpNoThrow(
+            AppOpsManager.OPSTR_GET_USAGE_STATS,
+            Process.myUid(), packageName
+        )
         return mode == AppOpsManager.MODE_ALLOWED
     }
 
@@ -82,7 +84,8 @@ class MainActivity : AppCompatActivity() {
 
     @RequiresApi(Build.VERSION_CODES.M)
     private fun getDeviceUsage(startTime: Long, endTime: Long): Long {
-        val networkStatsManager = applicationContext.getSystemService(NETWORK_STATS_SERVICE) as NetworkStatsManager
+        val networkStatsManager =
+            applicationContext.getSystemService(NETWORK_STATS_SERVICE) as NetworkStatsManager
         val bucket: NetworkStats.Bucket
         var totalUsage = 0L
         try {
