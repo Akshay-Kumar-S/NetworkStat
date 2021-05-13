@@ -23,6 +23,10 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        testYouTubeDataUsage()
+    }
+
+    private fun testYouTubeDataUsage() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (!getUsageAccessPermission()) {
                 val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
@@ -30,11 +34,6 @@ class MainActivity : AppCompatActivity() {
             } else {
                 val startTime = Util.getStartTime()
                 val endTime = Util.getEndTime()
-                Log.d(
-                    TAG,
-                    "getUsage:startTime  " + Util.getDate(startTime, "dd/MM/yyyy HH:mm:ss.SSS")
-                )
-                Log.d(TAG, "getUsage:endTime  " + Util.getDate(endTime, "dd/MM/yyyy HH:mm:ss.SSS"))
 //                Log.e(TAG, "************ device usage ************")
 //                getDeviceUsage(startTime, endTime)
                 Log.e(TAG, "************ app usage ************")
@@ -72,6 +71,8 @@ class MainActivity : AppCompatActivity() {
             while (networkStats.hasNextBucket()) {
                 networkStats.getNextBucket(bucket)
                 if (bucket.uid == uid) {
+                    Util.logTime("startTime", bucket.startTimeStamp)
+                    Util.logTime("endTime", bucket.endTimeStamp)
                     totalUsage += bucket.txBytes + bucket.rxBytes
                 }
             }

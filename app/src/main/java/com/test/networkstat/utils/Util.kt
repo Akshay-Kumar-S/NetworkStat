@@ -4,12 +4,14 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.telephony.TelephonyManager
+import android.util.Log
 import com.test.networkstat.App
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
 object Util {
+    private var TAG = "akshay"
 
     fun getUid(appName: String): Int {
         var uid = 0
@@ -42,7 +44,7 @@ object Util {
 
     fun getStartTime(): Long {
         val date = Calendar.getInstance()
-        date.set(Calendar.HOUR_OF_DAY, 12)
+        date.set(Calendar.HOUR_OF_DAY, 18)
         date.set(Calendar.MINUTE, 0)
         date.set(Calendar.SECOND, 0)
         date.set(Calendar.MILLISECOND, 0)
@@ -51,9 +53,8 @@ object Util {
 
     fun getEndTime(): Long {
         val date = Calendar.getInstance()
-        date.add(Calendar.DATE, 1)
-        date.set(Calendar.HOUR_OF_DAY, 13)
-        date.set(Calendar.MINUTE, 30)
+        date.set(Calendar.HOUR_OF_DAY, 18)
+        date.set(Calendar.MINUTE, 15)
         date.set(Calendar.SECOND, 0)
         date.set(Calendar.MILLISECOND, 0)
         return date.timeInMillis
@@ -69,5 +70,9 @@ object Util {
         } catch (e: Exception) {
         }
         return ""
+    }
+
+    fun logTime(param: String, time: Long) {
+        Log.d(TAG, param + ": " + getDate(time, "dd/MM/yyyy HH:mm:ss.SSS"))
     }
 }
