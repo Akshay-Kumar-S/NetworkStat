@@ -25,19 +25,18 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (!getUsageAccessPermission()) {
-                Log.d(TAG, "onCreate: " + System.currentTimeMillis())
                 val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
                 startActivity(intent)
             } else {
-                val startTime = 1605779115000
+                val startTime = Util.getStartTime()
                 val endTime = System.currentTimeMillis()
                 Log.d(
                     TAG,
                     "getUsage:startTime  " + Util.getDate(startTime, "dd/MM/yyyy hh:mm:ss.SSS")
                 )
                 Log.d(TAG, "getUsage:endTime  " + Util.getDate(endTime, "dd/MM/yyyy hh:mm:ss.SSS"))
-                Log.e(TAG, "************ device usage ************")
-                getDeviceUsage(startTime, endTime)
+//                Log.e(TAG, "************ device usage ************")
+//                getDeviceUsage(startTime, endTime)
                 Log.e(TAG, "************ app usage ************")
                 getAppUsage(startTime, endTime)
             }
@@ -61,8 +60,8 @@ class MainActivity : AppCompatActivity() {
         var totalUsage = 0L
         try {
             networkStats = networkStatsManager.querySummary(
-                ConnectivityManager.TYPE_WIFI,
-                "",
+                ConnectivityManager.TYPE_MOBILE,
+                Util.getSimSubscriberId(),
                 startTime,
                 endTime
             )
@@ -78,7 +77,6 @@ class MainActivity : AppCompatActivity() {
             Log.d(TAG, "getUsage: RemoteException")
         }
         Log.d(TAG, "getUsage: " + Util.getFileSize(totalUsage))
-        Log.d(TAG, "getUsage: " + totalUsage)
         return totalUsage
     }
 
@@ -88,10 +86,12 @@ class MainActivity : AppCompatActivity() {
         val bucket: NetworkStats.Bucket
         var totalUsage = 0L
         try {
-            bucket = networkStatsManager.querySummaryForDevice(ConnectivityManager.TYPE_WIFI,
-                    "",
-                    startTime,
-                    endTime)
+            bucket = networkStatsManager.querySummaryForDevice(
+                ConnectivityManager.TYPE_MOBILE,
+                Util.getSimSubscriberId(),
+                startTime,
+                endTime
+            )
             totalUsage += bucket.txBytes + bucket.rxBytes
         } catch (e: RemoteException) {
             Log.d(TAG, "getUsage: RemoteException")

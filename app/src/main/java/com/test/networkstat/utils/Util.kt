@@ -1,6 +1,9 @@
 package com.test.networkstat.utils
 
+import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
+import android.telephony.TelephonyManager
 import com.test.networkstat.App
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
@@ -35,5 +38,26 @@ object Util {
         val digitGroups = (Math.log10(size.toDouble()) / Math.log10(1024.0)).toInt()
         return DecimalFormat("#,##0.#").format(size / Math.pow(1024.0, digitGroups.toDouble()))
             .toString() + " " + units[digitGroups]
+    }
+
+    fun getStartTime(): Long {
+        val date = Calendar.getInstance()
+        date.set(Calendar.HOUR_OF_DAY, 15)
+        date.set(Calendar.MINUTE, 30)
+        date.set(Calendar.SECOND, 0)
+        date.set(Calendar.MILLISECOND, 0)
+        return date.timeInMillis
+    }
+
+    fun getSimSubscriberId(): String? {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
+                return null
+            val tm =
+                App.getInstance().getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+            return tm.subscriberId
+        } catch (e: Exception) {
+        }
+        return ""
     }
 }
