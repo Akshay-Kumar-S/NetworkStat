@@ -5,7 +5,6 @@ import android.app.usage.NetworkStats
 import android.app.usage.NetworkStatsManager
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.os.Build
 import android.os.Bundle
@@ -15,9 +14,7 @@ import android.provider.Settings
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import java.text.DecimalFormat
-import java.text.SimpleDateFormat
-import java.util.*
+import com.test.networkstat.utils.Util
 
 
 class MainActivity : AppCompatActivity() {
@@ -28,13 +25,17 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (!getUsageAccessPermission()) {
+                Log.d(TAG, "onCreate: " + System.currentTimeMillis())
                 val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
                 startActivity(intent)
             } else {
                 val startTime = 1605779115000
                 val endTime = System.currentTimeMillis()
-                Log.d(TAG, "getUsage:startTime  " + getDate(startTime, "dd/MM/yyyy hh:mm:ss.SSS"))
-                Log.d(TAG, "getUsage:endTime  " + getDate(endTime, "dd/MM/yyyy hh:mm:ss.SSS"))
+                Log.d(
+                    TAG,
+                    "getUsage:startTime  " + Util.getDate(startTime, "dd/MM/yyyy hh:mm:ss.SSS")
+                )
+                Log.d(TAG, "getUsage:endTime  " + Util.getDate(endTime, "dd/MM/yyyy hh:mm:ss.SSS"))
                 Log.e(TAG, "************ device usage ************")
                 getDeviceUsage(startTime, endTime)
                 Log.e(TAG, "************ app usage ************")
@@ -53,15 +54,18 @@ class MainActivity : AppCompatActivity() {
 
     @RequiresApi(Build.VERSION_CODES.M)
     private fun getAppUsage(startTime: Long, endTime: Long): Long {
-        val uid = getUid("com.google.android.youtube")
-        val networkStatsManager = applicationContext.getSystemService(NETWORK_STATS_SERVICE) as NetworkStatsManager
+        val uid = Util.getUid("com.google.android.youtube")
+        val networkStatsManager =
+            applicationContext.getSystemService(NETWORK_STATS_SERVICE) as NetworkStatsManager
         val networkStats: NetworkStats
         var totalUsage = 0L
         try {
-            networkStats = networkStatsManager.querySummary(ConnectivityManager.TYPE_WIFI,
-                    "",
-                    startTime,
-                    endTime)
+            networkStats = networkStatsManager.querySummary(
+                ConnectivityManager.TYPE_WIFI,
+                "",
+                startTime,
+                endTime
+            )
 
             val bucket = NetworkStats.Bucket()
             while (networkStats.hasNextBucket()) {
@@ -73,7 +77,8 @@ class MainActivity : AppCompatActivity() {
         } catch (e: RemoteException) {
             Log.d(TAG, "getUsage: RemoteException")
         }
-        Log.d(TAG, "getUsage: " + getFileSize(totalUsage))
+        Log.d(TAG, "getUsage: " + Util.getFileSize(totalUsage))
+        Log.d(TAG, "getUsage: " + totalUsage)
         return totalUsage
     }
 
@@ -91,35 +96,7 @@ class MainActivity : AppCompatActivity() {
         } catch (e: RemoteException) {
             Log.d(TAG, "getUsage: RemoteException")
         }
-        Log.d(TAG, "getUsage: " + getFileSize(totalUsage))
+        Log.d(TAG, "getUsage: " + Util.getFileSize(totalUsage))
         return totalUsage
-    }
-
-    private fun getUid(appName: String): Int {
-        var uid = 0
-        try {
-            uid = this.packageManager.getApplicationInfo(appName, 0).uid
-        } catch (e: PackageManager.NameNotFoundException) {
-            e.printStackTrace()
-        }
-        return uid
-    }
-
-    private fun getDate(milliSeconds: Long, format: String): String? {
-        // Create a DateFormatter object for displaying date in specified format.
-        //"dd/MM/yyyy hh:mm:ss.SSS"
-        val formatter = SimpleDateFormat(format)
-
-        // Create a calendar object that will convert the date and time value in milliseconds to date.
-        val calendar = Calendar.getInstance()
-        calendar.timeInMillis = milliSeconds
-        return formatter.format(calendar.time)
-    }
-
-    private fun getFileSize(size: Long): String? {
-        if (size <= 0) return "0"
-        val units = arrayOf("B", "KB", "MB", "GB", "TB")
-        val digitGroups = (Math.log10(size.toDouble()) / Math.log10(1024.0)).toInt()
-        return DecimalFormat("#,##0.#").format(size / Math.pow(1024.0, digitGroups.toDouble())).toString() + " " + units[digitGroups]
     }
 }
