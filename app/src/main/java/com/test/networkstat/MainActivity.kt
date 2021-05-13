@@ -1,17 +1,13 @@
 package com.test.networkstat
 
 import android.app.AppOpsManager
-import android.app.usage.NetworkStats
-import android.app.usage.NetworkStatsManager
 import android.content.Context
 import android.content.Intent
-import android.net.ConnectivityManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Process
-import android.os.RemoteException
 import android.provider.Settings
-import android.util.Log
+import android.view.View
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import com.test.networkstat.utils.Util
@@ -23,21 +19,14 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        testYouTubeDataUsage()
+        askUsageAccessPermission()
     }
 
-    private fun testYouTubeDataUsage() {
+    private fun askUsageAccessPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (!getUsageAccessPermission()) {
                 val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
                 startActivity(intent)
-            } else {
-                val startTime = Util.getStartTime()
-                val endTime = Util.getEndTime()
-//                Log.e(TAG, "************ device usage ************")
-//                getDeviceUsage(startTime, endTime)
-                Log.e(TAG, "************ app usage ************")
-                getAppUsage(startTime, endTime)
             }
         }
     }
@@ -52,55 +41,11 @@ class MainActivity : AppCompatActivity() {
         return mode == AppOpsManager.MODE_ALLOWED
     }
 
-    @RequiresApi(Build.VERSION_CODES.M)
-    private fun getAppUsage(startTime: Long, endTime: Long): Long {
-        val uid = Util.getUid("com.google.android.youtube")
-        val networkStatsManager =
-            applicationContext.getSystemService(NETWORK_STATS_SERVICE) as NetworkStatsManager
-        val networkStats: NetworkStats
-        var totalUsage = 0L
-        try {
-            networkStats = networkStatsManager.querySummary(
-                ConnectivityManager.TYPE_MOBILE,
-                Util.getSimSubscriberId(),
-                startTime,
-                endTime
-            )
-
-            val bucket = NetworkStats.Bucket()
-            while (networkStats.hasNextBucket()) {
-                networkStats.getNextBucket(bucket)
-                if (bucket.uid == uid) {
-                    Util.logTime("startTime", bucket.startTimeStamp)
-                    Util.logTime("endTime", bucket.endTimeStamp)
-                    totalUsage += bucket.txBytes + bucket.rxBytes
-                }
-            }
-        } catch (e: RemoteException) {
-            Log.d(TAG, "getUsage: RemoteException")
-        }
-        Log.d(TAG, "getUsage: " + Util.getFileSize(totalUsage))
-        return totalUsage
+    fun startService(view: View) {
+        Util.startService(this)
     }
 
-    @RequiresApi(Build.VERSION_CODES.M)
-    private fun getDeviceUsage(startTime: Long, endTime: Long): Long {
-        val networkStatsManager =
-            applicationContext.getSystemService(NETWORK_STATS_SERVICE) as NetworkStatsManager
-        val bucket: NetworkStats.Bucket
-        var totalUsage = 0L
-        try {
-            bucket = networkStatsManager.querySummaryForDevice(
-                ConnectivityManager.TYPE_MOBILE,
-                Util.getSimSubscriberId(),
-                startTime,
-                endTime
-            )
-            totalUsage += bucket.txBytes + bucket.rxBytes
-        } catch (e: RemoteException) {
-            Log.d(TAG, "getUsage: RemoteException")
-        }
-        Log.d(TAG, "getUsage: " + Util.getFileSize(totalUsage))
-        return totalUsage
+    fun stopService(view: View) {
+        Util.stopService(this)
     }
 }
