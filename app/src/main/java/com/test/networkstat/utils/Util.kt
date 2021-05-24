@@ -8,9 +8,12 @@ import android.os.Build
 import android.telephony.TelephonyManager
 import android.util.Log
 import com.test.networkstat.App
+import com.test.networkstat.database.RoomDB
 import com.test.networkstat.database.models.TimePeriod
 import com.test.networkstat.managers.PrefManager
 import com.test.networkstat.services.AppService
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import java.util.*
@@ -53,8 +56,8 @@ object Util {
 
     fun getStartTime(): Long {
         val date = Calendar.getInstance()
-        date.set(Calendar.HOUR_OF_DAY, 16)
-        date.set(Calendar.MINUTE, 30)
+        date.set(Calendar.HOUR_OF_DAY, 12)
+        date.set(Calendar.MINUTE, 54)
         date.set(Calendar.SECOND, 0)
         date.set(Calendar.MILLISECOND, 0)
         return date.timeInMillis
@@ -62,10 +65,10 @@ object Util {
 
     fun getEndTime(): Long {
         val date = Calendar.getInstance()
-        date.set(Calendar.HOUR_OF_DAY, 18)
-        date.set(Calendar.MINUTE, 15)
-        date.set(Calendar.SECOND, 0)
-        date.set(Calendar.MILLISECOND, 0)
+        date.set(Calendar.HOUR_OF_DAY, 12)
+        date.set(Calendar.MINUTE, 46)
+        date.set(Calendar.SECOND, 23)
+        date.set(Calendar.MILLISECOND, 430)
         return date.timeInMillis
     }
 
@@ -93,7 +96,7 @@ object Util {
     fun getLastCollectionEndTime(ctx: Context): Long {
         var time = PrefManager.createInstance(ctx).getLong(PrefManager.LAST_COLLECTION_END_TIME, 0L)
         if (time == 0L) {
-            time = DataUsageUtil.getLastAggregatedTime()
+            time = DataUsageUtil.getBucketTime().startTime
         }
         return time
     }
@@ -102,7 +105,7 @@ object Util {
         PrefManager.createInstance(ctx).putLong(PrefManager.LAST_COLLECTION_START_TIME, time)
     }
 
-    fun setLastCollectionEndTime(ctx: Context, time: Long) {
+    private fun setLastCollectionEndTime(ctx: Context, time: Long) {
         PrefManager.createInstance(ctx).putLong(PrefManager.LAST_COLLECTION_END_TIME, time)
     }
 
@@ -142,6 +145,35 @@ object Util {
             } else if (appInfo.applicationInfo.uid == 0) {
                 Log.d(TAG, "checkUId:0 " + appInfo.packageName)
             }
+        }
+    }
+
+    fun findSharedUid(ctx: Context) {
+        Log.d(TAG, "findSharedUid: ")
+        val appInfoList = ctx.packageManager.getInstalledPackages(0)
+        val uidMap = mutableMapOf<Int, ArrayList<String>>()
+        for (appInfo in appInfoList) {
+            if (uidMap.containsKey(appInfo.applicationInfo.uid)) {
+                uidMap[appInfo.applicationInfo.uid]!!.add(appInfo.packageName)
+            } else {
+                uidMap[appInfo.applicationInfo.uid] = arrayListOf(appInfo.packageName)
+            }
+        }
+        for (uid in uidMap) {
+            if (uid.value.size > 1) {
+                Log.e(TAG, "uid: ${uid.key} : No of apps Share: " + uid.value.size)
+                for (app in uid.value) {
+                    Log.d(TAG, "pkgName: ${app}")
+                }
+            }
+        }
+    }
+
+    fun reset() {
+        GlobalScope.launch {
+            RoomDB.getDatabase().appDataUsageDao().deleteAll()
+            RoomDB.getDatabase().deviceDataUsageDao().deleteAll()
+            PrefManager.createInstance(App.getInstance()).clearPref()
         }
     }
 }

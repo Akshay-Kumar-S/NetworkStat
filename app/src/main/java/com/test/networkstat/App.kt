@@ -23,7 +23,7 @@ class App : Application() {
     private fun createNotificationChannel() {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             val mChannel =
-                NotificationChannel("soti_service", "soti", NotificationManager.IMPORTANCE_DEFAULT)
+                NotificationChannel("xyz_service", "xyz", NotificationManager.IMPORTANCE_DEFAULT)
             val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(mChannel)
         }

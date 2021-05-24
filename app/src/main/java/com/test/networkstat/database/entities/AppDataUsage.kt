@@ -12,6 +12,8 @@ data class AppDataUsage(
     @ColumnInfo(name = "end_time") val endTime: Long,
     @ColumnInfo(name = "app_tx") val appTx: Long,
     @ColumnInfo(name = "app_rx") val appRx: Long,
+    @ColumnInfo(name = "tx_packets") val txPackets: Long,
+    @ColumnInfo(name = "rx_packets") val rxPackets: Long,
     @ColumnInfo(name = "r_start_time") val rStartTime: String,
     @ColumnInfo(name = "r_end_time") val rEndTime: String,
     @ColumnInfo(name = "r_app_tx") val rAppTx: String,

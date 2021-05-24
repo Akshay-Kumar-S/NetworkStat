@@ -7,10 +7,13 @@ import com.test.networkstat.App
 import com.test.networkstat.BuildConfig
 import com.test.networkstat.database.entities.AppDataUsage
 import com.test.networkstat.database.entities.AppDataUsageDao
+import com.test.networkstat.database.entities.DeviceDataUsage
+import com.test.networkstat.database.entities.DeviceDataUsageDao
 
-@Database(entities = [AppDataUsage::class], version = 1)
+@Database(entities = [AppDataUsage::class, DeviceDataUsage::class], version = 1)
 abstract class RoomDB : RoomDatabase() {
     abstract fun appDataUsageDao(): AppDataUsageDao
+    abstract fun deviceDataUsageDao(): DeviceDataUsageDao
 
     companion object {
         private lateinit var db: RoomDB

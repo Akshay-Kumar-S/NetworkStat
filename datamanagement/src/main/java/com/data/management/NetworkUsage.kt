@@ -12,7 +12,6 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
 import java.util.*
-import java.util.concurrent.TimeUnit
 
 class NetworkUsage(
     private val ctx: Context, private val startTime: Long, private val endTime: Long
@@ -20,29 +19,13 @@ class NetworkUsage(
     private var TAG = "akshay"
 
     fun getAppDataUsage(): Map<Int, AppUsage> {
-        return if (isBelow120Min()) {
-            Log.d(TAG, "getAppDataUsage: < 120 min")
-            val beginTime = startTime - TimeUnit.HOURS.toMillis(2)
-            val firstUsage = findAppDataUsage(beginTime, startTime)
-            val secondUsage = findAppDataUsage(beginTime, endTime)
-            calculateIntervalUsage(firstUsage, secondUsage)
-        } else {
-            findAppDataUsage(startTime, endTime)
-        }
-    }
-
-    private fun isBelow120Min(): Boolean {
-        return (endTime - startTime) < TimeUnit.MINUTES.toMillis(120)
-    }
-
-    private fun isEndTime2HrBehind(): Boolean {
-        return System.currentTimeMillis() - endTime > TimeUnit.MINUTES.toMillis(120)
+        return findAppDataUsage(startTime, endTime)
     }
 
     private fun findAppDataUsage(startTime: Long, endTime: Long): MutableMap<Int, AppUsage> {
         Log.e(TAG, "findAppDataUsage: ")
-        //findDeviceDataUsage(startTime, endTime)
-        getUidTxRxBytes(10069)
+        findDeviceDataUsage(startTime, endTime)
+        //getUidTxRxBytes(10069)
         val networkStatsManager =
             ctx.getSystemService(AppCompatActivity.NETWORK_STATS_SERVICE) as NetworkStatsManager
         val networkStats: NetworkStats
@@ -58,7 +41,7 @@ class NetworkUsage(
             val bucket = NetworkStats.Bucket()
             while (networkStats.hasNextBucket()) {
                 networkStats.getNextBucket(bucket)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && bucket.uid == uid) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && bucket.uid == -5) {
                     Log.d(
                         TAG,
                         "uid: ${bucket.uid}, " +

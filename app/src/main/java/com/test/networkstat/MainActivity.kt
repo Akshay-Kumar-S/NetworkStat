@@ -8,7 +8,6 @@ import android.os.Bundle
 import android.os.Process
 import android.provider.Settings
 import android.view.View
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import com.test.networkstat.utils.Util
 
@@ -20,6 +19,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         askUsageAccessPermission()
+        //Util.findSharedUid(this)
     }
 
     private fun askUsageAccessPermission() {
@@ -31,7 +31,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.M)
     private fun getUsageAccessPermission(): Boolean {
         val appOps = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
         val mode = appOps.checkOpNoThrow(
@@ -47,5 +46,6 @@ class MainActivity : AppCompatActivity() {
 
     fun stopService(view: View) {
         Util.stopService(this)
+        Util.reset()
     }
 }

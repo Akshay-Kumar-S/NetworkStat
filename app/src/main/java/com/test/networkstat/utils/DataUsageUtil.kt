@@ -3,14 +3,12 @@ package com.test.networkstat.utils
 import android.app.usage.NetworkStats
 import android.app.usage.NetworkStatsManager
 import android.content.Context
-import android.net.NetworkCapabilities
 import android.os.Build
 import android.os.RemoteException
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import com.test.networkstat.App
-import com.test.networkstat.database.RoomDB
-import com.test.networkstat.database.models.AppUsage
+import com.test.networkstat.database.models.DataUsage
 import com.test.networkstat.database.models.QueryConfig
 import com.test.networkstat.database.models.TimePeriod
 import com.test.networkstat.managers.PrefManager
@@ -21,6 +19,7 @@ object DataUsageUtil {
     private var TAG = "akshay"
 
     private fun findAggregationTime(): Long {
+        Log.d(TAG, "findAggregationTime: ")
         val nsm = App.getInstance()
             .getSystemService(AppCompatActivity.NETWORK_STATS_SERVICE) as NetworkStatsManager
         var aggregationTime: Long = -1
@@ -30,10 +29,11 @@ object DataUsageUtil {
                 Util.getSimSubscriberId(),
                 System.currentTimeMillis() - TimeUnit.DAYS.toMillis(105),
                 System.currentTimeMillis() + TimeUnit.HOURS.toMillis(2),
-                Util.getUid("com.google.android.youtube")
+                Util.getUid("com.android.chrome")
             )
             val bucket = NetworkStats.Bucket()
             if (networkStats.hasNextBucket()) {
+                Log.d(TAG, "findAggregationTime: " + Util.getDateDefault(bucket.startTimeStamp))
                 networkStats.getNextBucket(bucket)
                 aggregationTime = bucket.startTimeStamp
                 networkStats.close()
@@ -43,52 +43,70 @@ object DataUsageUtil {
         return aggregationTime
     }
 
-    fun getLastAggregatedTime(): Long {
+    fun getBucketTime(time: Long = System.currentTimeMillis()): TimePeriod {
+        Log.d(TAG, "getLastAggregatedTime: ")
         val aggregationTime = getAggregationTime()
-        val currentTime = Calendar.getInstance()
+        val calendar = Calendar.getInstance()
+        calendar.timeInMillis = time
         if (aggregationTime != -1L) {
             val aCalendar = Calendar.getInstance()
             aCalendar.timeInMillis = aggregationTime
 
-            currentTime.set(Calendar.MINUTE, aCalendar.get(Calendar.MINUTE))
-            currentTime.set(Calendar.SECOND, aCalendar.get(Calendar.SECOND))
-            currentTime.set(Calendar.MILLISECOND, aCalendar.get(Calendar.MILLISECOND))
+            calendar.set(Calendar.MINUTE, aCalendar.get(Calendar.MINUTE))
+            calendar.set(Calendar.SECOND, aCalendar.get(Calendar.SECOND))
+            calendar.set(Calendar.MILLISECOND, aCalendar.get(Calendar.MILLISECOND))
 
             val aHourEven = isEven(aCalendar.get(Calendar.HOUR_OF_DAY))
-            val cHourEven = isEven(currentTime.get(Calendar.HOUR_OF_DAY))
+            val cHourEven = isEven(calendar.get(Calendar.HOUR_OF_DAY))
 
             if ((aHourEven && cHourEven) || (!aHourEven && !cHourEven)) {
-                if (currentTime.timeInMillis > System.currentTimeMillis()) {
-                    currentTime.timeInMillis -= TimeUnit.HOURS.toMillis(2)
+                if (calendar.timeInMillis > time) {
+                    calendar.timeInMillis -= TimeUnit.HOURS.toMillis(2)
                 }
             } else {
-                currentTime.timeInMillis -= TimeUnit.HOURS.toMillis(1)
+                calendar.timeInMillis -= TimeUnit.HOURS.toMillis(1)
             }
         } else {
             Log.d(TAG, "getLastAggregatedTime: else ")
             //TODO process aggregationTime = -1
         }
-        return currentTime.timeInMillis
+        return TimePeriod(calendar.timeInMillis, calendar.timeInMillis + TimeUnit.HOURS.toMillis(2))
     }
 
     private fun getAggregationTime(ctx: Context = App.getInstance()): Long {
+        Log.d(TAG, "getAggregationTime: ")
         var time = PrefManager.createInstance(ctx).getLong(PrefManager.AGGREGATION_TIME, -1)
         if (time == -1L) {
             time = findAggregationTime()
+            setAggregationTime(ctx, time)
         }
         return time
+    }
+
+    fun getStartEndTime(prevCollectionEndTime: Long): TimePeriod {
+        val timePeriod = getBucketTime()
+        return if (prevCollectionEndTime < timePeriod.startTime) {
+            getBucketTime(prevCollectionEndTime)
+        } else {
+            timePeriod.endTime = System.currentTimeMillis()
+            timePeriod
+        }
+    }
+
+    private fun setAggregationTime(ctx: Context, value: Long) {
+        PrefManager.createInstance(ctx).putLong(PrefManager.AGGREGATION_TIME, value)
     }
 
     private fun isEven(value: Int): Boolean {
         return value % 2 == 0
     }
 
-    fun findAppDataUsage(ctx: Context, queryConfig: QueryConfig): MutableMap<Int, AppUsage> {
+    fun findAppDataUsage(ctx: Context, queryConfig: QueryConfig): MutableMap<Int, DataUsage> {
         Log.e(TAG, "findAppDataUsage: ")
         val networkStatsManager =
             ctx.getSystemService(AppCompatActivity.NETWORK_STATS_SERVICE) as NetworkStatsManager
         val networkStats: NetworkStats
-        val appUsageMap = mutableMapOf<Int, AppUsage>()
+        val appUsageMap = mutableMapOf<Int, DataUsage>()
         try {
             val uid = Util.getUid("com.google.android.youtube")
             networkStats = networkStatsManager.querySummary(
@@ -100,12 +118,19 @@ object DataUsageUtil {
             val bucket = NetworkStats.Bucket()
             while (networkStats.hasNextBucket()) {
                 networkStats.getNextBucket(bucket)
-                logBucket(bucket, uid)
+                //logBucket(bucket, uid)
                 if (appUsageMap.containsKey(bucket.uid)) {
                     appUsageMap[bucket.uid]!!.txBytes += bucket.txBytes
                     appUsageMap[bucket.uid]!!.rxBytes += bucket.rxBytes
+                    appUsageMap[bucket.uid]!!.txPackets += bucket.txPackets
+                    appUsageMap[bucket.uid]!!.rxPackets += bucket.rxPackets
                 } else {
-                    appUsageMap[bucket.uid] = AppUsage(bucket.uid, bucket.txBytes, bucket.rxBytes)
+                    appUsageMap[bucket.uid] = DataUsage(
+                        bucket.txBytes,
+                        bucket.rxBytes,
+                        bucket.txPackets,
+                        bucket.rxPackets
+                    )
                 }
             }
             networkStats.close()
@@ -113,63 +138,6 @@ object DataUsageUtil {
             Log.d(TAG, "getUsage: RemoteException")
         }
         return appUsageMap
-    }
-
-    fun logTotalAppUsage() {
-        Log.d(TAG, "logTotalAppUsage: ")
-        val appUsage = RoomDB.getDatabase().appDataUsageDao().getAll()
-        Log.d(
-            TAG,
-            "st: ${Util.getDateDefault(appUsage.first().startTime)}, " +
-                    "et: ${Util.getDateDefault(appUsage.last().endTime)},  " +
-                    "tx Bytes: ${appUsage.sumOf { it.appTx }},  " +
-                    "rx Bytes: ${appUsage.sumOf { it.appRx }},  "
-        )
-    }
-
-    fun logDeviceUsage() {
-        try {
-            findDeviceDataUsage(
-                App.getInstance(),
-                QueryConfig(
-                    NetworkCapabilities.TRANSPORT_CELLULAR,
-                    TimePeriod(
-                        RoomDB.getDatabase().appDataUsageDao().getFirstRow().startTime,
-                        Util.getLastCollectionEndTime(App.getInstance())
-                    )
-                )
-            )
-        } catch (e: Exception) {
-            Log.d(TAG, "logDeviceUsage: ", e)
-        }
-    }
-
-    private fun findDeviceDataUsage(ctx: Context, queryConfig: QueryConfig) {
-        Log.d(TAG, "findDeviceDataUsage: ")
-        val networkStatsManager =
-            ctx.getSystemService(AppCompatActivity.NETWORK_STATS_SERVICE) as NetworkStatsManager
-        val bucket: NetworkStats.Bucket = networkStatsManager.querySummaryForDevice(
-            queryConfig.networkType,
-            Util.getSimSubscriberId(),
-            queryConfig.timePeriod.startTime,
-            queryConfig.timePeriod.endTime
-        )
-        Log.d(
-            TAG,
-            "st: ${Util.getDateDefault(bucket.startTimeStamp)}, " +
-                    "et: ${Util.getDateDefault(bucket.endTimeStamp)},  " +
-                    "tx Bytes: ${bucket.txBytes},  " +
-                    "rx Bytes: ${bucket.rxBytes},  "
-        )
-        /*Log.d(
-            TAG,
-            "st: ${Util.getDateDefault(bucket.startTimeStamp)}, " +
-                    "et: ${Util.getDateDefault(bucket.endTimeStamp)},  " +
-                    "tx Bytes: ${Util.getFileSize(bucket.txBytes)},  " +
-                    "rx Bytes: ${Util.getFileSize(bucket.rxBytes)},  " +
-                    "tx Packet: ${Util.getFileSize(bucket.txPackets)},  " +
-                    "rx Packet: ${Util.getFileSize(bucket.rxPackets)},  "
-        )*/
     }
 
     private fun logBucket(bucket: NetworkStats.Bucket, uid: Int) {
@@ -194,6 +162,19 @@ object DataUsageUtil {
                         },  "
             )
         }
+    }
+
+    fun findDeviceDataUsage(ctx: Context, queryConfig: QueryConfig): DataUsage {
+        Log.d(TAG, "findDeviceDataUsage: ")
+        val networkStatsManager =
+            ctx.getSystemService(AppCompatActivity.NETWORK_STATS_SERVICE) as NetworkStatsManager
+        val bucket: NetworkStats.Bucket = networkStatsManager.querySummaryForDevice(
+            queryConfig.networkType,
+            Util.getSimSubscriberId(),
+            queryConfig.timePeriod.startTime,
+            queryConfig.timePeriod.endTime
+        )
+        return DataUsage(bucket.txBytes, bucket.rxBytes, bucket.txPackets, bucket.rxPackets)
     }
 
     private fun getReadableState(state: Int): String {
