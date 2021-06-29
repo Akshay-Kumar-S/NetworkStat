@@ -1,11 +1,19 @@
 package com.test.networkstat.utils
 
+import android.app.usage.NetworkStats
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.telephony.TelephonyManager
 import android.util.Log
 import com.test.networkstat.App
+import com.test.networkstat.database.RoomDB
+import com.test.networkstat.database.models.TimePeriod
+import com.test.networkstat.managers.PrefManager
+import com.test.networkstat.services.AppService
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import java.util.*
@@ -23,7 +31,11 @@ object Util {
         return uid
     }
 
-    fun getDate(milliSeconds: Long, format: String): String? {
+    fun getDateDefault(milliSeconds: Long): String {
+        return getDate(milliSeconds, "dd/MM/yyyy HH:mm:ss.SSS")
+    }
+
+    fun getDate(milliSeconds: Long, format: String): String {
         // Create a DateFormatter object for displaying date in specified format.
         //"dd/MM/yyyy hh:mm:ss.SSS"
         val formatter = SimpleDateFormat(format)
@@ -34,7 +46,7 @@ object Util {
         return formatter.format(calendar.time)
     }
 
-    fun getFileSize(size: Long): String? {
+    fun getFileSize(size: Long): String {
         if (size <= 0) return "0"
         val units = arrayOf("B", "KB", "MB", "GB", "TB")
         val digitGroups = (Math.log10(size.toDouble()) / Math.log10(1024.0)).toInt()
@@ -44,8 +56,8 @@ object Util {
 
     fun getStartTime(): Long {
         val date = Calendar.getInstance()
-        date.set(Calendar.HOUR_OF_DAY, 18)
-        date.set(Calendar.MINUTE, 0)
+        date.set(Calendar.HOUR_OF_DAY, 12)
+        date.set(Calendar.MINUTE, 54)
         date.set(Calendar.SECOND, 0)
         date.set(Calendar.MILLISECOND, 0)
         return date.timeInMillis
@@ -53,10 +65,10 @@ object Util {
 
     fun getEndTime(): Long {
         val date = Calendar.getInstance()
-        date.set(Calendar.HOUR_OF_DAY, 18)
-        date.set(Calendar.MINUTE, 15)
-        date.set(Calendar.SECOND, 0)
-        date.set(Calendar.MILLISECOND, 0)
+        date.set(Calendar.HOUR_OF_DAY, 12)
+        date.set(Calendar.MINUTE, 46)
+        date.set(Calendar.SECOND, 23)
+        date.set(Calendar.MILLISECOND, 430)
         return date.timeInMillis
     }
 
@@ -74,5 +86,94 @@ object Util {
 
     fun logTime(param: String, time: Long) {
         Log.d(TAG, param + ": " + getDate(time, "dd/MM/yyyy HH:mm:ss.SSS"))
+    }
+
+    fun updateLastCollectionTime(ctx: Context, timePeriod: TimePeriod) {
+        setLastCollectionStartTime(ctx, getLastCollectionEndTime(ctx))
+        setLastCollectionEndTime(ctx, timePeriod.endTime)
+    }
+
+    fun getLastCollectionEndTime(ctx: Context): Long {
+        var time = PrefManager.createInstance(ctx).getLong(PrefManager.LAST_COLLECTION_END_TIME, 0L)
+        if (time == 0L) {
+            time = DataUsageUtil.getBucketTime().startTime
+        }
+        return time
+    }
+
+    private fun setLastCollectionStartTime(ctx: Context, time: Long) {
+        PrefManager.createInstance(ctx).putLong(PrefManager.LAST_COLLECTION_START_TIME, time)
+    }
+
+    private fun setLastCollectionEndTime(ctx: Context, time: Long) {
+        PrefManager.createInstance(ctx).putLong(PrefManager.LAST_COLLECTION_END_TIME, time)
+    }
+
+    fun uidToPackageName(ctx: Context, uid: Int): String {
+        val packageName = ctx.packageManager.getNameForUid(uid)
+            ?: when (uid) {
+                NetworkStats.Bucket.UID_REMOVED -> "removed"
+                NetworkStats.Bucket.UID_TETHERING -> "tethering"
+                else -> "unknown"
+            }
+
+        return if (':' in packageName)
+            packageName.substring(0, packageName.indexOf(':'))
+        else
+            packageName
+    }
+
+    fun startService(context: Context) {
+        Intent(context, AppService::class.java).also { intent ->
+            context.startService(intent)
+        }
+    }
+
+    fun stopService(context: Context) {
+        Intent(context, AppService::class.java).also { intent ->
+            context.stopService(intent)
+        }
+    }
+
+    private fun checkUId(ctx: Context) {
+        val appInfoList = ctx.packageManager.getInstalledPackages(0)
+        for (appInfo in appInfoList) {
+            if (appInfo.applicationInfo.uid == 1051) {
+                Log.d(TAG, "checkUId:1051 " + appInfo.packageName)
+            } else if (appInfo.applicationInfo.uid == 1052) {
+                Log.d(TAG, "checkUId:1052 " + appInfo.packageName)
+            } else if (appInfo.applicationInfo.uid == 0) {
+                Log.d(TAG, "checkUId:0 " + appInfo.packageName)
+            }
+        }
+    }
+
+    fun findSharedUid(ctx: Context) {
+        Log.d(TAG, "findSharedUid: ")
+        val appInfoList = ctx.packageManager.getInstalledPackages(0)
+        val uidMap = mutableMapOf<Int, ArrayList<String>>()
+        for (appInfo in appInfoList) {
+            if (uidMap.containsKey(appInfo.applicationInfo.uid)) {
+                uidMap[appInfo.applicationInfo.uid]!!.add(appInfo.packageName)
+            } else {
+                uidMap[appInfo.applicationInfo.uid] = arrayListOf(appInfo.packageName)
+            }
+        }
+        for (uid in uidMap) {
+            if (uid.value.size > 1) {
+                Log.e(TAG, "uid: ${uid.key} : No of apps Share: " + uid.value.size)
+                for (app in uid.value) {
+                    Log.d(TAG, "pkgName: ${app}")
+                }
+            }
+        }
+    }
+
+    fun reset() {
+        GlobalScope.launch {
+            RoomDB.getDatabase().appDataUsageDao().deleteAll()
+            RoomDB.getDatabase().deviceDataUsageDao().deleteAll()
+            PrefManager.createInstance(App.getInstance()).clearPref()
+        }
     }
 }
