@@ -9,7 +9,6 @@ import android.telephony.TelephonyManager
 import android.util.Log
 import com.test.networkstat.App
 import com.test.networkstat.database.RoomDB
-import com.test.networkstat.database.models.TimePeriod
 import com.test.networkstat.managers.PrefManager
 import com.test.networkstat.services.AppService
 import kotlinx.coroutines.GlobalScope
@@ -17,6 +16,7 @@ import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 object Util {
     private var TAG = "akshay"
@@ -46,12 +46,16 @@ object Util {
         return formatter.format(calendar.time)
     }
 
-    fun getFileSize(size: Long): String {
-        if (size <= 0) return "0"
+    fun getFileSize(value: Long): String {
+        var size = value
+        if (value == 0L) return "0"
+        if (value < 0) size *= -1
         val units = arrayOf("B", "KB", "MB", "GB", "TB")
         val digitGroups = (Math.log10(size.toDouble()) / Math.log10(1024.0)).toInt()
-        return DecimalFormat("#,##0.#").format(size / Math.pow(1024.0, digitGroups.toDouble()))
+        var res = DecimalFormat("#,##0.#").format(size / Math.pow(1024.0, digitGroups.toDouble()))
             .toString() + " " + units[digitGroups]
+        if (value <= 0) res = ("-").plus(res)
+        return res
     }
 
     fun getStartTime(): Long {
@@ -88,24 +92,15 @@ object Util {
         Log.d(TAG, param + ": " + getDate(time, "dd/MM/yyyy HH:mm:ss.SSS"))
     }
 
-    fun updateLastCollectionTime(ctx: Context, timePeriod: TimePeriod) {
-        setLastCollectionStartTime(ctx, getLastCollectionEndTime(ctx))
-        setLastCollectionEndTime(ctx, timePeriod.endTime)
-    }
-
     fun getLastCollectionEndTime(ctx: Context): Long {
         var time = PrefManager.createInstance(ctx).getLong(PrefManager.LAST_COLLECTION_END_TIME, 0L)
         if (time == 0L) {
-            time = DataUsageUtil.getBucketTime().startTime
+            time = getEvenStartTime(System.currentTimeMillis())
         }
         return time
     }
 
-    private fun setLastCollectionStartTime(ctx: Context, time: Long) {
-        PrefManager.createInstance(ctx).putLong(PrefManager.LAST_COLLECTION_START_TIME, time)
-    }
-
-    private fun setLastCollectionEndTime(ctx: Context, time: Long) {
+    fun setLastCollectionEndTime(ctx: Context, time: Long) {
         PrefManager.createInstance(ctx).putLong(PrefManager.LAST_COLLECTION_END_TIME, time)
     }
 
@@ -175,5 +170,12 @@ object Util {
             RoomDB.getDatabase().deviceDataUsageDao().deleteAll()
             PrefManager.createInstance(App.getInstance()).clearPref()
         }
+    }
+
+    fun getEvenStartTime(ct: Long): Long {
+        val period = TimeUnit.HOURS.toMillis(2)
+        val prevWholeTime = (ct / period) * period
+        Log.d("akshay", "getEvenStartTime $prevWholeTime")
+        return prevWholeTime
     }
 }

@@ -12,7 +12,6 @@ class PrefManager {
     private lateinit var editor: SharedPreferences.Editor
 
     companion object {
-        const val LAST_COLLECTION_START_TIME = "last_usage_start_time"
         const val LAST_COLLECTION_END_TIME = "last_usage_end_time"
         const val AGGREGATION_TIME = "aggregation_time"
 

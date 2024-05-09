@@ -25,7 +25,8 @@ class AppService : Service() {
         super.onCreate()
         Log.d(TAG, "onCreate: ")
         running = true
-        startThread()
+//        startThread()
+        startUsageCollection()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -67,9 +68,37 @@ class AppService : Service() {
                 updateAppUsageDb(queryConfig, getAppUsage(queryConfig))
                 updateDeviceUsageDb(queryConfig, getDeviceUsage(queryConfig))
 
-                Util.updateLastCollectionTime(this, queryConfig.timePeriod)
+                Util.setLastCollectionEndTime(this, queryConfig.timePeriod.endTime)
                 try {
                     Thread.sleep(getCollectionInterval(queryConfig))
+                } catch (e: InterruptedException) {
+                    Log.d(TAG, "startThread: ", e)
+                }
+            } while (running)
+            stopSelf()
+        }
+        t!!.start()
+    }
+
+    private fun startUsageCollection() {
+        t = Thread {
+            do {
+                val currentTime = System.currentTimeMillis()
+                val startTimeOfBucket = Util.getEvenStartTime(currentTime)
+                val queryConfig = QueryConfig(NetworkCapabilities.TRANSPORT_CELLULAR)
+                queryConfig.timePeriod = TimePeriod(startTimeOfBucket, currentTime)
+                queryConfig.prevCollectionEndTime = Util.getLastCollectionEndTime(this)
+
+                for (i in 0..1) {
+                    Log.d(TAG, "startUsageCollection:n/w type $i")
+                    queryConfig.networkType = i
+                    updateAppUsageDb(queryConfig, getAppUsage(queryConfig))
+                    updateDeviceUsageDb(queryConfig, getDeviceUsage(queryConfig))
+                }
+
+                Util.setLastCollectionEndTime(this, queryConfig.timePeriod.endTime)
+                try {
+                    Thread.sleep(60 * 1000)
                 } catch (e: InterruptedException) {
                     Log.d(TAG, "startThread: ", e)
                 }
@@ -109,7 +138,11 @@ class AppService : Service() {
     private fun updateAppUsageDb(queryConfig: QueryConfig, usageMap: Map<Int, DataUsage>) {
         Log.d(TAG, "updateDb: " + usageMap.size)
         val prevUsageMap = RoomDB.getDatabase().appDataUsageDao()
-            .getByTime(queryConfig.timePeriod.startTime, queryConfig.prevCollectionEndTime)
+            .getByTimeAndType(
+                queryConfig.networkType,
+                queryConfig.timePeriod.startTime,
+                queryConfig.prevCollectionEndTime
+            )
             .groupBy { it.appUid }
             .mapValues {
                 DataUsage(
@@ -167,7 +200,11 @@ class AppService : Service() {
 
     private fun updateDeviceUsageDb(queryConfig: QueryConfig, dataUsage: DataUsage) {
         val prevUsageMap = RoomDB.getDatabase().deviceDataUsageDao()
-            .getByTime(queryConfig.timePeriod.startTime, queryConfig.prevCollectionEndTime)
+            .getByTimeAndType(
+                queryConfig.networkType,
+                queryConfig.timePeriod.startTime,
+                queryConfig.prevCollectionEndTime
+            )
 
         if (prevUsageMap.isNotEmpty()) {
             dataUsage.txBytes -= prevUsageMap.sumOf { it.txBytes }
