@@ -1,6 +1,12 @@
 package com.test.networkstat.database.entities
 
-import androidx.room.*
+import androidx.room.ColumnInfo
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Entity
+import androidx.room.Insert
+import androidx.room.PrimaryKey
+import androidx.room.Query
 
 @Entity
 data class DeviceDataUsage(
@@ -25,6 +31,9 @@ interface DeviceDataUsageDao {
 
     @Query("SELECT * FROM DeviceDataUsage where start_time >= :startTime and end_time <= :endTime")
     fun getByTime(startTime: Long, endTime: Long): List<DeviceDataUsage>
+
+    @Query("SELECT * FROM DeviceDataUsage where start_time >= :startTime and end_time <= :endTime and network_type == :networkType")
+    fun getByTimeAndType(networkType: Int, startTime: Long, endTime: Long): List<DeviceDataUsage>
 
     @Insert
     fun insert(appUsageList: DeviceDataUsage)

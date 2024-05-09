@@ -108,7 +108,6 @@ object DataUsageUtil {
         val networkStats: NetworkStats
         val appUsageMap = mutableMapOf<Int, DataUsage>()
         try {
-            val uid = Util.getUid("com.google.android.youtube")
             networkStats = networkStatsManager.querySummary(
                 queryConfig.networkType,
                 Util.getSimSubscriberId(),
@@ -118,7 +117,7 @@ object DataUsageUtil {
             val bucket = NetworkStats.Bucket()
             while (networkStats.hasNextBucket()) {
                 networkStats.getNextBucket(bucket)
-                //logBucket(bucket, uid)
+                logBucket(bucket, 0)
                 if (appUsageMap.containsKey(bucket.uid)) {
                     appUsageMap[bucket.uid]!!.txBytes += bucket.txBytes
                     appUsageMap[bucket.uid]!!.rxBytes += bucket.rxBytes
@@ -146,7 +145,7 @@ object DataUsageUtil {
                 TAG,
                 "uid: ${bucket.uid}, " +
                         "st: ${Util.getDateDefault(bucket.startTimeStamp)}, " +
-                        "et: ${Util.getDateDefault(bucket.endTimeStamp)},  " +
+                        "et: ${Util.getDateDefault(bucket.endTimeStamp)},  "/* +
                         "tx Bytes: ${bucket.txBytes},  " +
                         "rx Bytes: ${bucket.rxBytes},  " +
                         "tx Packet: ${bucket.txPackets},  " +
@@ -159,13 +158,13 @@ object DataUsageUtil {
                             getReadableDefaultNetwork(
                                 bucket.defaultNetworkStatus
                             )
-                        },  "
+                        },  "*/
             )
         }
     }
 
     fun findDeviceDataUsage(ctx: Context, queryConfig: QueryConfig): DataUsage {
-        Log.d(TAG, "findDeviceDataUsage: ")
+        Log.e(TAG, "findDeviceDataUsage: ")
         val networkStatsManager =
             ctx.getSystemService(AppCompatActivity.NETWORK_STATS_SERVICE) as NetworkStatsManager
         val bucket: NetworkStats.Bucket = networkStatsManager.querySummaryForDevice(
@@ -173,6 +172,12 @@ object DataUsageUtil {
             Util.getSimSubscriberId(),
             queryConfig.timePeriod.startTime,
             queryConfig.timePeriod.endTime
+        )
+        Log.d(
+            TAG,
+            "findDeviceDataUsage: st: ${Util.getDateDefault(bucket.startTimeStamp)}, et: ${
+                Util.getDateDefault(bucket.endTimeStamp)
+            }"
         )
         return DataUsage(bucket.txBytes, bucket.rxBytes, bucket.txPackets, bucket.rxPackets)
     }
