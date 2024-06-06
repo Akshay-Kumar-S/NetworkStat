@@ -102,7 +102,7 @@ object DataUsageUtil {
     }
 
     fun findAppDataUsage(ctx: Context, queryConfig: QueryConfig): MutableMap<Int, DataUsage> {
-        Log.e(TAG, "findAppDataUsage: ")
+        Log.e(TAG, "findAppDataUsage: " + queryConfig.networkType)
         val networkStatsManager =
             ctx.getSystemService(AppCompatActivity.NETWORK_STATS_SERVICE) as NetworkStatsManager
         val networkStats: NetworkStats
@@ -117,13 +117,13 @@ object DataUsageUtil {
             val bucket = NetworkStats.Bucket()
             while (networkStats.hasNextBucket()) {
                 networkStats.getNextBucket(bucket)
-                logBucket(bucket, 0)
                 if (appUsageMap.containsKey(bucket.uid)) {
                     appUsageMap[bucket.uid]!!.txBytes += bucket.txBytes
                     appUsageMap[bucket.uid]!!.rxBytes += bucket.rxBytes
                     appUsageMap[bucket.uid]!!.txPackets += bucket.txPackets
                     appUsageMap[bucket.uid]!!.rxPackets += bucket.rxPackets
                 } else {
+                    logBucket(bucket, 10250)
                     appUsageMap[bucket.uid] = DataUsage(
                         bucket.txBytes,
                         bucket.rxBytes,
@@ -136,16 +136,68 @@ object DataUsageUtil {
         } catch (e: RemoteException) {
             Log.d(TAG, "getUsage: RemoteException")
         }
+        logAppUsage(appUsageMap[10250])
+        return appUsageMap
+    }
+
+    fun findAppUsageQueryDetailsForUid(
+        ctx: Context,
+        queryConfig: QueryConfig
+    ): MutableMap<Int, DataUsage> {
+        Log.e(TAG, "findAppUsageQueryDetailsForUid: " + queryConfig.networkType)
+        val networkStatsManager =
+            ctx.getSystemService(AppCompatActivity.NETWORK_STATS_SERVICE) as NetworkStatsManager
+        val appUsageMap = mutableMapOf<Int, DataUsage>()
+        try {
+            val uidMap = Util.findSharedUid(ctx)
+            for ((uid, apps) in uidMap) {
+                val networkStats = networkStatsManager.queryDetailsForUid(
+                    queryConfig.networkType,
+                    Util.getSimSubscriberId(),
+                    queryConfig.timePeriod.startTime,
+                    queryConfig.timePeriod.endTime,
+                    uid
+                )
+                val bucket = NetworkStats.Bucket()
+                while (networkStats.hasNextBucket()) {
+                    networkStats.getNextBucket(bucket)
+                    if (appUsageMap.containsKey(bucket.uid)) {
+                        appUsageMap[bucket.uid]!!.txBytes += bucket.txBytes
+                        appUsageMap[bucket.uid]!!.rxBytes += bucket.rxBytes
+                        appUsageMap[bucket.uid]!!.txPackets += bucket.txPackets
+                        appUsageMap[bucket.uid]!!.rxPackets += bucket.rxPackets
+                    } else {
+                        logBucket(bucket, 10250)
+                        appUsageMap[bucket.uid] = DataUsage(
+                            bucket.txBytes,
+                            bucket.rxBytes,
+                            bucket.txPackets,
+                            bucket.rxPackets
+                        )
+                    }
+                    if (apps.size > 1 && appUsageMap.containsKey(bucket.uid)) {
+                        appUsageMap[bucket.uid]!!.txBytes *= apps.size
+                        appUsageMap[bucket.uid]!!.rxBytes *= apps.size
+                        appUsageMap[bucket.uid]!!.txPackets *= apps.size
+                        appUsageMap[bucket.uid]!!.rxPackets *= apps.size
+                    }
+                }
+                networkStats.close()
+            }
+        } catch (e: RemoteException) {
+            Log.d(TAG, "getUsage: RemoteException")
+        }
+        logAppUsage(appUsageMap[10250])
         return appUsageMap
     }
 
     private fun logBucket(bucket: NetworkStats.Bucket, uid: Int) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && bucket.uid == uid) {
-            Log.d(
+            Log.i(
                 TAG,
                 "uid: ${bucket.uid}, " +
                         "st: ${Util.getDateDefault(bucket.startTimeStamp)}, " +
-                        "et: ${Util.getDateDefault(bucket.endTimeStamp)},  "/* +
+                        "et: ${Util.getDateDefault(bucket.endTimeStamp)},  " /* +
                         "tx Bytes: ${bucket.txBytes},  " +
                         "rx Bytes: ${bucket.rxBytes},  " +
                         "tx Packet: ${bucket.txPackets},  " +
@@ -163,8 +215,19 @@ object DataUsageUtil {
         }
     }
 
+    private fun logAppUsage(dataUsage: DataUsage?) {
+        if (dataUsage == null) return
+        Log.i(TAG, "logAppUsage:tx " + dataUsage.txBytes)
+        Log.i(TAG, "logAppUsage:rx " + dataUsage.rxBytes)
+        Log.i(TAG, "logAppUsage:txp " + dataUsage.txPackets)
+        Log.i(TAG, "logAppUsage:rxp " + dataUsage.rxPackets)
+        val totalUsage =
+            dataUsage.txBytes + dataUsage.rxBytes + dataUsage.txPackets + dataUsage.rxPackets
+        Log.i(TAG, "logAppUsage:tot $totalUsage [${Util.getFileSize(totalUsage)}]")
+    }
+
     fun findDeviceDataUsage(ctx: Context, queryConfig: QueryConfig): DataUsage {
-        Log.e(TAG, "findDeviceDataUsage: ")
+        Log.e(TAG, "findDeviceDataUsage: " + queryConfig.networkType)
         val networkStatsManager =
             ctx.getSystemService(AppCompatActivity.NETWORK_STATS_SERVICE) as NetworkStatsManager
         val bucket: NetworkStats.Bucket = networkStatsManager.querySummaryForDevice(
@@ -180,6 +243,34 @@ object DataUsageUtil {
             }"
         )
         return DataUsage(bucket.txBytes, bucket.rxBytes, bucket.txPackets, bucket.rxPackets)
+    }
+
+    fun findDeviceUsageQueryDetails(ctx: Context, queryConfig: QueryConfig): DataUsage {
+        Log.e(TAG, "findDeviceUsageQueryDetails: " + queryConfig.networkType)
+        val networkStatsManager =
+            ctx.getSystemService(AppCompatActivity.NETWORK_STATS_SERVICE) as NetworkStatsManager
+        val ns: NetworkStats = networkStatsManager.queryDetails(
+            queryConfig.networkType,
+            Util.getSimSubscriberId(),
+            queryConfig.timePeriod.startTime,
+            queryConfig.timePeriod.endTime
+        )
+        val dataUsage = DataUsage(0, 0, 0, 0)
+        do {
+            val bucket: NetworkStats.Bucket = NetworkStats.Bucket()
+            Log.d(
+                TAG,
+                "findDeviceUsageQueryDetails st: ${Util.getDateDefault(bucket.startTimeStamp)}, et: ${
+                    Util.getDateDefault(bucket.endTimeStamp)
+                } "
+            )
+            ns.getNextBucket(bucket)
+            dataUsage.txBytes += bucket.txBytes
+            dataUsage.rxBytes += bucket.rxBytes
+            dataUsage.txPackets += bucket.txPackets
+            dataUsage.rxPackets += bucket.rxPackets
+        } while ((ns.hasNextBucket()))
+        return dataUsage
     }
 
     private fun getReadableState(state: Int): String {

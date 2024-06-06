@@ -10,6 +10,7 @@ import android.provider.Settings
 import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import com.test.networkstat.database.models.QueryConfig
 import com.test.networkstat.database.models.TimePeriod
 import com.test.networkstat.utils.TestUtil
 import com.test.networkstat.utils.Util
@@ -18,49 +19,58 @@ import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
     private var TAG = "akshay"
-    var time: Long = 0
+    private var time: Long = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "onCreate: ")
         setContentView(R.layout.activity_main)
         askUsageAccessPermission()
-//        Util.findSharedUid(this)
-//        getUsageFromStartUp()
-        get2hrWindow()
 //        get30minWindows()
         Util.getEvenStartTime(System.currentTimeMillis())
     }
 
-    private fun getUsageFromStartUp() {
-        val testUtil = TestUtil(TimePeriod(0, System.currentTimeMillis()))
-        testUtil.getAppDataUsageFromStartup(this.applicationContext)
-        testUtil.getDeviceDataUsageFromStartup(this.applicationContext)
-        testUtil.printAppDeviceUsageDifferent()
+    fun getUsageFromStartUp(view: View) {
+        val testUtil = TestUtil()
+        for (i in 0..0) {
+            val queryConfig = QueryConfig(i)
+            queryConfig.timePeriod = TimePeriod(0, System.currentTimeMillis())
+            testUtil.getAppDataUsageFromStartup(this.applicationContext, queryConfig)
+            testUtil.getDeviceDataUsageFromStartup(this.applicationContext, queryConfig)
+            testUtil.printAppDeviceUsageDifferent()
+        }
     }
 
-    private fun get2hrWindow() {
+    fun get2hrWindow(view: View) {
         Log.e(TAG, "get2hrWindow: ")
         time = System.currentTimeMillis()
         val endTime = Util.getEvenStartTime(time)
         val startTime = endTime - TimeUnit.HOURS.toMillis(2)
-        val testUtil = TestUtil(TimePeriod(startTime, endTime))
-        testUtil.getAppDataUsageFromStartup(this.applicationContext)
-        testUtil.getDeviceDataUsageFromStartup(this.applicationContext)
-        testUtil.printAppDeviceUsageDifferent()
+        val testUtil = TestUtil()
+        for (i in 1..1) {
+            val queryConfig = QueryConfig(i)
+            queryConfig.timePeriod = TimePeriod(startTime, endTime)
+            testUtil.getAppDataUsageFromStartup(this.applicationContext, queryConfig)
+            testUtil.getDeviceDataUsageFromStartup(this.applicationContext, queryConfig)
+            testUtil.printAppDeviceUsageDifferent()
+        }
     }
 
     private fun get30minWindows() {
         Log.e(TAG, "get30minWindows: ")
         var endTime = Util.getEvenStartTime(time)
         var startTime = endTime - TimeUnit.HOURS.toMillis(2)
-        for (i in 0..3) {
-            endTime = startTime + TimeUnit.MINUTES.toMillis(30)
-            val testUtil = TestUtil(TimePeriod(startTime, endTime))
-            testUtil.getAppDataUsageFromStartup(this.applicationContext)
-            testUtil.getDeviceDataUsageFromStartup(this.applicationContext)
-            testUtil.printAppDeviceUsageDifferent()
-            startTime = endTime
+        val testUtil = TestUtil()
+        for (i in 0..1) {
+            val queryConfig = QueryConfig(i)
+            queryConfig.timePeriod = TimePeriod(startTime, endTime)
+            for (i in 0..3) {
+                endTime = startTime + TimeUnit.MINUTES.toMillis(30)
+                testUtil.getAppDataUsageFromStartup(this.applicationContext, queryConfig)
+                testUtil.getDeviceDataUsageFromStartup(this.applicationContext, queryConfig)
+                testUtil.printAppDeviceUsageDifferent()
+                startTime = endTime
+            }
         }
     }
 
@@ -89,5 +99,9 @@ class MainActivity : AppCompatActivity() {
     fun stopService(view: View) {
         Util.stopService(this)
         Util.reset()
+    }
+
+    fun printAppUid(view: View) {
+        Util.findSharedUid(this)
     }
 }

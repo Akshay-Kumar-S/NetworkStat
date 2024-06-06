@@ -78,14 +78,16 @@ object Util {
 
     fun getSimSubscriberId(): String? {
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && Build.VERSION.SDK_INT <= Build.VERSION_CODES.R)
                 return null
             val tm =
                 App.getInstance().getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+            Log.d(TAG, "getSimSubscriberId: " + tm.subscriberId)
             return tm.subscriberId
         } catch (e: Exception) {
+            Log.e(TAG, "getSimSubscriberId: ", e)
         }
-        return ""
+        return null
     }
 
     fun logTime(param: String, time: Long) {
@@ -143,7 +145,7 @@ object Util {
         }
     }
 
-    fun findSharedUid(ctx: Context) {
+    fun findSharedUid(ctx: Context): MutableMap<Int, ArrayList<String>> {
         Log.d(TAG, "findSharedUid: ")
         val appInfoList = ctx.packageManager.getInstalledPackages(0)
         val uidMap = mutableMapOf<Int, ArrayList<String>>()
@@ -155,13 +157,12 @@ object Util {
             }
         }
         for (uid in uidMap) {
-            if (uid.value.size > 1) {
-                Log.e(TAG, "uid: ${uid.key} : No of apps Share: " + uid.value.size)
-                for (app in uid.value) {
-                    Log.d(TAG, "pkgName: ${app}")
-                }
+            Log.e(TAG, "uid: ${uid.key} : No of apps Share: " + uid.value.size)
+            for (app in uid.value) {
+                Log.d(TAG, "pkgName: ${app}")
             }
         }
+        return uidMap
     }
 
     fun reset() {

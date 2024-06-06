@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">NetworkStat</string>
     <string name="start_service">Start Service</string>
+    <string name="usage_from_startup">Usage From StartUp</string>
+    <string name="last_bucket_usage">Last bucket usage</string>
+    <string name="app_uid">App-UID</string>
+    <string name="find_brave_browser">Find Brave Browser</string>
 </resources>

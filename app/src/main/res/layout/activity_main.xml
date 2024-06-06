@@ -26,4 +26,35 @@
         app:layout_constraintEnd_toEndOf="parent"
         tools:ignore="MissingConstraints" />
 
+    <Button
+        android:id="@+id/usage_from_startup"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/usage_from_startup"
+        android:onClick="getUsageFromStartUp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/start_service"
+        tools:ignore="MissingConstraints" />
+
+    <Button
+        android:id="@+id/last_bucket_usage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/last_bucket_usage"
+        android:onClick="get2hrWindow"
+        app:layout_constraintStart_toEndOf="@id/usage_from_startup"
+        app:layout_constraintTop_toBottomOf="@id/stop_service"
+        tools:ignore="MissingConstraints" />
+
+
+    <Button
+        android:id="@+id/app_uid"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/app_uid"
+        android:onClick="printAppUid"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/usage_from_startup"
+        tools:ignore="MissingConstraints" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
