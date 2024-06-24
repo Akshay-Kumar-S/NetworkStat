@@ -156,12 +156,12 @@ object Util {
                 uidMap[appInfo.applicationInfo.uid] = arrayListOf(appInfo.packageName)
             }
         }
-        for (uid in uidMap) {
+        /*for (uid in uidMap) {
             Log.e(TAG, "uid: ${uid.key} : No of apps Share: " + uid.value.size)
             for (app in uid.value) {
                 Log.d(TAG, "pkgName: ${app}")
             }
-        }
+        }*/
         return uidMap
     }
 

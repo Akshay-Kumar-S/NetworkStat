@@ -26,7 +26,7 @@ object DataUsageUtil {
         for (networkType in 0..1) {
             val networkStats = nsm.queryDetailsForUid(
                 networkType,
-                Util.getSimSubscriberId(),
+                if (networkType == 0) Util.getSimSubscriberId() else null,
                 System.currentTimeMillis() - TimeUnit.DAYS.toMillis(105),
                 System.currentTimeMillis() + TimeUnit.HOURS.toMillis(2),
                 Util.getUid("com.android.chrome")
@@ -110,7 +110,7 @@ object DataUsageUtil {
         try {
             networkStats = networkStatsManager.querySummary(
                 queryConfig.networkType,
-                Util.getSimSubscriberId(),
+                if (queryConfig.networkType == 0) Util.getSimSubscriberId() else null,
                 queryConfig.timePeriod.startTime,
                 queryConfig.timePeriod.endTime
             )
@@ -153,7 +153,7 @@ object DataUsageUtil {
             for ((uid, apps) in uidMap) {
                 val networkStats = networkStatsManager.queryDetailsForUid(
                     queryConfig.networkType,
-                    Util.getSimSubscriberId(),
+                    if (queryConfig.networkType == 0) Util.getSimSubscriberId() else null,
                     queryConfig.timePeriod.startTime,
                     queryConfig.timePeriod.endTime,
                     uid
@@ -232,7 +232,7 @@ object DataUsageUtil {
             ctx.getSystemService(AppCompatActivity.NETWORK_STATS_SERVICE) as NetworkStatsManager
         val bucket: NetworkStats.Bucket = networkStatsManager.querySummaryForDevice(
             queryConfig.networkType,
-            Util.getSimSubscriberId(),
+            if (queryConfig.networkType == 0) Util.getSimSubscriberId() else null,
             queryConfig.timePeriod.startTime,
             queryConfig.timePeriod.endTime
         )
@@ -251,7 +251,7 @@ object DataUsageUtil {
             ctx.getSystemService(AppCompatActivity.NETWORK_STATS_SERVICE) as NetworkStatsManager
         val ns: NetworkStats = networkStatsManager.queryDetails(
             queryConfig.networkType,
-            Util.getSimSubscriberId(),
+            if (queryConfig.networkType == 0) Util.getSimSubscriberId() else null,
             queryConfig.timePeriod.startTime,
             queryConfig.timePeriod.endTime
         )
@@ -264,6 +264,7 @@ object DataUsageUtil {
                     Util.getDateDefault(bucket.endTimeStamp)
                 } "
             )
+            Log.d(TAG, "findDeviceUsageQueryDetails uid of app " + bucket.uid)
             ns.getNextBucket(bucket)
             dataUsage.txBytes += bucket.txBytes
             dataUsage.rxBytes += bucket.rxBytes

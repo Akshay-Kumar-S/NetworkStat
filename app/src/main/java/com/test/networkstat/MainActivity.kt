@@ -32,7 +32,7 @@ class MainActivity : AppCompatActivity() {
 
     fun getUsageFromStartUp(view: View) {
         val testUtil = TestUtil()
-        for (i in 0..0) {
+        for (i in 1..1) {
             val queryConfig = QueryConfig(i)
             queryConfig.timePeriod = TimePeriod(0, System.currentTimeMillis())
             testUtil.getAppDataUsageFromStartup(this.applicationContext, queryConfig)
@@ -50,7 +50,7 @@ class MainActivity : AppCompatActivity() {
         for (i in 1..1) {
             val queryConfig = QueryConfig(i)
             queryConfig.timePeriod = TimePeriod(startTime, endTime)
-            testUtil.getAppDataUsageFromStartup(this.applicationContext, queryConfig)
+            //testUtil.getAppDataUsageFromStartup(this.applicationContext, queryConfig)
             testUtil.getDeviceDataUsageFromStartup(this.applicationContext, queryConfig)
             testUtil.printAppDeviceUsageDifferent()
         }

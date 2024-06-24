@@ -4,6 +4,10 @@
     package="com.test.networkstat">
 
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <!-- We need to query all apps and not filter them in one way or another -->
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
 
     <uses-permission
         android:name="android.permission.PACKAGE_USAGE_STATS"
